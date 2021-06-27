@@ -1,10 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const app = express();
 const multer = require('multer');
-
 const cors = require('cors');
+
+const app = express();
 app.use(cors());
 
 const http = require('http');//
