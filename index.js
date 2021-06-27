@@ -42,14 +42,6 @@ const upload = multer({
     fileSize: MAX_SIZE
   }
 })
-// const fileStorage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, 'images');
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, file.filename + '-' + file.originalname)
-//   }
-//  });
  
 app.post('/upload', upload.single('file'), (req, res, next) => {
   const old_file_path = req.file.path;
