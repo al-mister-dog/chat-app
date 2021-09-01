@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 
 const http = require("http");
-const server = http.createServer(app); 
+const server = http.createServer(app);
 const { Server } = require("socket.io"); 
 const io = new Server(server, {
   cors: {
@@ -45,6 +45,7 @@ fs.readdir(directory, (err, files) => {
 });
 
 const MAX_SIZE = 200000;
+
 const upload = multer({
   dest: "server/public/assets",
   fileFilter,
@@ -53,12 +54,12 @@ const upload = multer({
   },
 });
 
-let files;
+// let files;
 app.post("/api/upload", upload.single("file"), (req, res, next) => {
   const old_file_path = req.file.path;
   const new_file_path = old_file_path + ".jpeg";
   fs.renameSync(old_file_path, new_file_path);
-  files = new_file_path;
+  // files = new_file_path;
   res.send(new_file_path);
 });
 
@@ -71,6 +72,24 @@ if (process.env.NODE_ENV === "production") {
   app.get(/.*/, (req, res) => res.sendFile(__dirname + "/public/index.html"));
 }
 
+let users = [];
+const pushOnlineUsers = (usr, id) => {
+  const user = {
+    user: usr.user,
+    id: id,
+  };
+  if (users.some((usr) => usr.id === id)) {
+    return;
+  }
+  users.push(user);
+};
+
+const deleteOnlineUsers = (id) => {
+  console.log(users)
+  users = users.filter((user) => user.id !== id);
+};
+
+
 io.on("connection", (socket) => {
   const randomHue = Math.floor(Math.random() * 357);
   const background = `hsl(${randomHue}, 87%, 91%)`;
@@ -78,6 +97,13 @@ io.on("connection", (socket) => {
   io.to(socket.id).emit("send id", {
     id: socket.id,
   });
+
+  socket.on("user online", (user) => {
+    pushOnlineUsers(user, socket.id);
+    io.emit("user online", {
+      users,
+    })
+  })
 
   socket.on("new message", (msg) => {
     io.emit("new message", {
@@ -93,7 +119,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("new image", (msg) => {
-    console.log(msg.message);
     io.emit("new image", {
       messageType: msg.messageType,
       message: msg.message,
@@ -107,9 +132,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("user disconnected");
+    deleteOnlineUsers(socket.id);
+    io.emit("user disconnected", {
+      users,
+    });
   });
 });
 
-server.listen(PORT);
+server.listen(PORT, () => {
+  console.log("listening");
+});
 
